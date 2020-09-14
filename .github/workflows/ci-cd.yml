@@ -16,6 +16,7 @@ jobs:
   # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#tojson
   create-matrix:
     runs-on: ubuntu-latest
+    name: Create Matrix
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -24,15 +25,11 @@ jobs:
 
   build:
     needs: create-matrix
-
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.create-matrix.outputs.matrix) }}
-
     name: Build Spigot v${{ matrix.spigot }}
-
     steps:
       - uses: actions/cache@v2
         with:
@@ -48,7 +45,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: build
+          name: build-${{ matrix.spigot }}
           path: |
             spigot-*.jar
             craftbukkit-*.jar
