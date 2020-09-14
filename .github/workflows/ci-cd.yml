@@ -1,0 +1,54 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - .github/workflows/ci-cd.yml
+
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#tojson
+  create-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: echo "::set-output name=matrix::{\"spigot\":[\"1.16.1\", \"1.16.2\", \"1.16.3\"]}"
+
+  build:
+    needs: create-matrix
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.create-matrix.outputs.matrix) }}
+
+    name: Build Spigot v${{ matrix.spigot }}
+
+    steps:
+      - uses: actions/cache@v2
+        with:
+          path: .
+          key: ${{ runner.os }}-spigot-${{ matrix.spigot }}
+          restore-keys: ${{ runner.os }}-spigot-
+
+      - name: Install latest BuildTools
+        run: curl --fail --silent --show-error --location --output BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
+
+      - name: Build
+        run: java -Xmx4G -jar BuildTools.jar --rev ${{ matrix.spigot }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: |
+            spigot-*.jar
+            craftbukkit-*.jar
