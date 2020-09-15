@@ -89,14 +89,14 @@ jobs:
       - name: Rename to spigot.jar
         run: find . -iname 'spigot-*.jar' -exec mv {} spigot.jar \;
 
-      - name: Check if release exists
-        id: release-exists
-        continue-on-error: true
-        run: git rev-list "${{ matrix.spigot }}" >/dev/null
+      - name: Delete tag if it exists
+        run: |
+          if git rev-list "${{ matrix.spigot }}" >/dev/null; then
+              git push --delete origin "${{ matrix.spigot }}"
+          fi
 
       - uses: actions/create-release@v1
-        if: steps.release-exists.outcome == 'failure'
-        id: create_release
+        id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -109,7 +109,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
           asset_path: ./spigot.jar
           asset_name: spigot.jar
           asset_content_type: application/java-archive
