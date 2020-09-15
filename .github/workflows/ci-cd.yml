@@ -74,17 +74,20 @@ jobs:
         run: curl --fail --silent --show-error --location --output BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
 
       - name: Build
-        run: java -Xmx4G -jar BuildTools.jar --rev ${{ matrix.spigot }}
+        run: java -Xmx4G -jar BuildTools.jar --rev ${{ matrix.spigot }} -o out
 
       - uses: actions/upload-artifact@v2
         with:
           name: build-${{ matrix.spigot }}
           path: |
-            spigot-*.jar
-            craftbukkit-*.jar
+            out/spigot-*.jar
+            out/craftbukkit-*.jar
 
       - name: Rename to spigot.jar
-        run: find . -iname 'spigot-*.jar' -exec mv {} spigot.jar \;
+        run: find ./out -iname 'spigot-*.jar' -exec mv {} ./out/spigot.jar \;
+
+      - run: ls -Al
+      - run: ls -Al out
 
       - name: Delete tag if it exists
         run: |
@@ -109,6 +112,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: ./spigot.jar
+          asset_path: ./out/spigot.jar
           asset_name: spigot.jar
           asset_content_type: application/java-archive
