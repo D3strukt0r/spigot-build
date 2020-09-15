@@ -64,7 +64,9 @@ jobs:
         with:
           path: .
           key: ${{ runner.os }}-spigot-${{ matrix.spigot }}
-          restore-keys: ${{ runner.os }}-spigot-
+          restore-keys: |
+            ${{ runner.os }}-spigot-
+            ${{ runner.os }}-
 
       - name: Install latest BuildTools
         run: curl --fail --silent --show-error --location --output BuildTools.jar https://hub.spigotmc.org/jenkins/job/BuildTools/lastSuccessfulBuild/artifact/target/BuildTools.jar
@@ -78,3 +80,31 @@ jobs:
           path: |
             spigot-*.jar
             craftbukkit-*.jar
+
+      - name: Rename to spigot.jar
+        run: find . -iname 'spigot-*.jar' -exec mv {} spigot.jar \;
+
+      - name: Check if release exists
+        id: release-exists
+        continue-on-error: true
+        run: git rev-list "${{ matrix.spigot }}" >/dev/null
+
+      - uses: actions/create-release@v1
+        if: steps.release-exists.outcome == 'failure'
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ matrix.spigot }}
+          release_name: ${{ matrix.spigot }}
+          draft: false
+
+      - uses: actions/upload-release-asset@v1
+        id: upload-release-asset 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./spigot.jar
+          asset_name: spigot.jar
+          asset_content_type: application/java-archive
