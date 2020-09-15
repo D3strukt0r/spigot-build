@@ -1,16 +1,12 @@
 name: CI/CD
 
 on:
-  push:
-    branches:
-      - master
-      - develop
-    paths:
-      - .github/workflows/ci-cd.yml
-
-  pull_request:
-
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version of Spigot ('latest', 'all', specific version)"
+        required: true
+        default: "latest"
 
 jobs:
   # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#tojson
@@ -20,24 +16,41 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - id: set-matrix
+      - name: Create Matrix
+        id: set-matrix
         run: |
-          versions=($(
-              curl -s https://hub.spigotmc.org/versions/ |
-              grep -E "*[0-9]\.[0-9]{1,2}(\.[0-9]){0,}?(-pre[0-9]){0,}" -o |
-              uniq |
-              sed 's/\.$//' |
-              sed 's/-pre/~pre/' |
-              sort --version-sort |
-              sed 's/~pre/-pre/'
-          ))
+          if [ "${{ github.event.inputs.version }}" == "latest" ]; then
+              # Only get the latest version
+              versions=($(
+                  curl -s https://hub.spigotmc.org/versions/ |
+                  grep -E "*[0-9]\.[0-9]{1,2}(\.[0-9]){0,}?(-pre[0-9]){0,}" -o |
+                  uniq |
+                  sed 's/\.$//' |
+                  sed 's/-pre/~pre/' |
+                  sort --version-sort |
+                  sed 's/~pre/-pre/' |
+                  tail -n 1
+              ))
+          elif [ "${{ github.event.inputs.version }}" == "all" ]; then
+              versions=($(
+                  curl -s https://hub.spigotmc.org/versions/ |
+                  grep -E "*[0-9]\.[0-9]{1,2}(\.[0-9]){0,}?(-pre[0-9]){0,}" -o |
+                  uniq |
+                  sed 's/\.$//' |
+                  sed 's/-pre/~pre/' |
+                  sort --version-sort |
+                  sed 's/~pre/-pre/'
+              ))
+          else
+              versions=${{ github.event.inputs.version }}
+          fi
+
           versions_json=$(
               printf '%s\n' "${versions[@]}" |
               jq --raw-input . |
               jq --compact-output --slurp '{spigot:.}'
           )
           echo "::set-output name=matrix::$versions_json"
-          # echo "::set-output name=matrix::{\"spigot\":[\"1.16.1\", \"1.16.2\", \"1.16.3\"]}"
 
   build:
     needs: create-matrix
