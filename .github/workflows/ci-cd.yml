@@ -62,6 +62,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Fetch tags
+        run: git fetch --all --tags
+
       - uses: actions/cache@v2
         with:
           path: .
