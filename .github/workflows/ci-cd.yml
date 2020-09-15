@@ -60,6 +60,8 @@ jobs:
       matrix: ${{ fromJson(needs.create-matrix.outputs.matrix) }}
     name: Build Spigot v${{ matrix.spigot }}
     steps:
+      - uses: actions/checkout@v2
+
       - uses: actions/cache@v2
         with:
           path: .
@@ -100,7 +102,7 @@ jobs:
           draft: false
 
       - uses: actions/upload-release-asset@v1
-        id: upload-release-asset 
+        id: upload-release-asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
