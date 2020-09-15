@@ -62,9 +62,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Fetch tags
-        run: git fetch --all --tags
-
       - uses: actions/cache@v2
         with:
           path: .
@@ -91,8 +88,10 @@ jobs:
 
       - name: Delete tag if it exists
         run: |
+          git fetch --all --tags
           if git rev-list "${{ matrix.spigot }}" >/dev/null; then
               git push --delete origin "${{ matrix.spigot }}"
+              git fetch --all --tags
           fi
 
       - uses: actions/create-release@v1
