@@ -1,0 +1,73 @@
+name: Check outdated builds
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest version
+        run: |
+          latest_version=($(
+              curl -s https://hub.spigotmc.org/versions/ |
+              grep -E "*[0-9]\.[0-9]{1,2}(\.[0-9]){0,}?(-pre[0-9]){0,}" -o |
+              uniq |
+              sed 's/\.$//' |
+              sed 's/-pre/~pre/' |
+              sort --version-sort |
+              sed 's/~pre/-pre/' |
+              tail -n 1
+          ))
+          echo "::set-env name=LATEST_VERSION::$latest_version"
+
+      - name: Download builds
+        run: |
+          curl https://github.com/${{ github.repository }}/releases/download/${{ env.LATEST_VERSION }}/spigot.jar
+          if (( 0 != $? )); then
+              echo "::set-env name=BUILD_EXISTS::false"
+          else
+              echo "::set-env name=BUILD_EXISTS::true"
+          fi
+
+      - name: Test build
+        if: env.BUILD_EXISTS == 'true'
+        run: |
+          true >output.txt
+
+          ( java -Xms1G -Xmx4G -jar spigot.jar 2>&1 | tee output.txt ) &
+          PID=$!
+          sleep 1
+
+          # https://superuser.com/questions/153735/kill-process-after-its-been-allowed-to-run-for-some-time
+          # https://unix.stackexchange.com/questions/336894/kill-the-parent-of-a-child-pipe-process
+          kill -- -$PID 2>/dev/null &
+          wait $PID
+
+          # https://stackoverflow.com/questions/11287861/how-to-check-if-a-file-contains-a-specific-string-using-bash
+          if grep -q outdated output.txt; then
+              curl \
+                  --silent \
+                  --request POST \
+                  --header "Authorization: Bearer ${{ secrets.PAT }}" \
+                  --header "Accept: application/vnd.github.v3+json" \
+                  --url https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/dispatches \
+                  --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ env.LATEST_VERSION }}\"}}"
+          fi
+
+      - name: Create build
+        if: env.BUILD_EXISTS != 'true'
+        run: |
+          curl \
+              --silent \
+              --request POST \
+              --header "Authorization: Bearer ${{ secrets.PAT }}" \
+              --header "Accept: application/vnd.github.v3+json" \
+              --url https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/dispatches \
+              --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ env.LATEST_VERSION }}\"}}"
+
+
+
