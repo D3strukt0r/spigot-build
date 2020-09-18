@@ -27,15 +27,15 @@ jobs:
 
       - name: Download builds
         run: |
-          curl https://github.com/${{ github.repository }}/releases/download/${{ env.LATEST_VERSION }}/spigot.jar
+          curl -fsSL -o spigot.jar https://github.com/${{ github.repository }}/releases/download/${{ env.LATEST_VERSION }}/spigot.jar
           if (( 0 != $? )); then
-              echo "::set-env name=BUILD_EXISTS::false"
+              echo "::set-env name=BUILD_EXISTS::0"
           else
-              echo "::set-env name=BUILD_EXISTS::true"
+              echo "::set-env name=BUILD_EXISTS::1"
           fi
 
       - name: Test build
-        if: env.BUILD_EXISTS == 'true'
+        if: env.BUILD_EXISTS == '1'
         run: |
           true >output.txt
 
@@ -60,7 +60,7 @@ jobs:
           fi
 
       - name: Create build
-        if: env.BUILD_EXISTS != 'true'
+        if: env.BUILD_EXISTS != '1'
         run: |
           curl \
               --silent \
