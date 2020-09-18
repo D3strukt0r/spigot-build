@@ -2,7 +2,8 @@ name: Check outdated builds
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    # Every hour
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
