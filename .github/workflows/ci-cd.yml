@@ -102,9 +102,6 @@ jobs:
           artifacts: "out/spigot.jar"
           allowUpdates: true
 
-      # - run: ls -Al
-      # - run: ls -Al out
-
       # - name: Delete tag if it exists
       #   run: |
       #     git fetch --all --tags

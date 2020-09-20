@@ -4,6 +4,7 @@ on:
   schedule:
     # Every hour
     - cron: "0 * * * *"
+
   workflow_dispatch:
 
 jobs:
@@ -69,6 +70,3 @@ jobs:
               --header "Accept: application/vnd.github.v3+json" \
               --url https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/dispatches \
               --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ env.LATEST_VERSION }}\"}}"
-
-
-
