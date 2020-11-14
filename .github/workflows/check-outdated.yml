@@ -26,6 +26,7 @@ jobs:
           )"
 
       - name: Download builds
+        continue-on-error: true
         id: download
         run: |
           curl -fsSL -o spigot.jar https://github.com/${{ github.repository }}/releases/download/${{ steps.prep.outputs.latestSpigotVersion }}/spigot.jar
