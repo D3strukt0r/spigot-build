@@ -2,8 +2,7 @@ name: Check outdated builds
 
 on:
   schedule:
-    # Every hour
-    - cron: "0 * * * *"
+    - cron: "0 * * * *" # Every hour
 
   workflow_dispatch:
 
@@ -13,8 +12,9 @@ jobs:
 
     steps:
       - name: Get latest version
+        id: prep
         run: |
-          latest_version=($(
+          echo "::set-output name=latestSpigotVersion::$(
               curl -s https://hub.spigotmc.org/versions/ |
               grep -E "*[0-9]\.[0-9]{1,2}(\.[0-9]){0,}?(-pre[0-9]){0,}" -o |
               uniq |
@@ -23,20 +23,20 @@ jobs:
               sort --version-sort |
               sed 's/~pre/-pre/' |
               tail -n 1
-          ))
-          echo "::set-env name=LATEST_VERSION::$latest_version"
+          )"
 
       - name: Download builds
+        id: download
         run: |
-          curl -fsSL -o spigot.jar https://github.com/${{ github.repository }}/releases/download/${{ env.LATEST_VERSION }}/spigot.jar
+          curl -fsSL -o spigot.jar https://github.com/${{ github.repository }}/releases/download/${{ steps.prep.outputs.latestSpigotVersion }}/spigot.jar
           if (( 0 != $? )); then
-              echo "::set-env name=BUILD_EXISTS::0"
+              echo "::set-output name=exists::0"
           else
-              echo "::set-env name=BUILD_EXISTS::1"
+              echo "::set-output name=exists::1"
           fi
 
       - name: Test build
-        if: env.BUILD_EXISTS == '1'
+        if: steps.download.outputs.exists == '1'
         run: |
           true >output.txt
 
@@ -57,11 +57,11 @@ jobs:
                   --header "Authorization: Bearer ${{ secrets.PAT }}" \
                   --header "Accept: application/vnd.github.v3+json" \
                   --url https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/dispatches \
-                  --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ env.LATEST_VERSION }}\"}}"
+                  --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ steps.prep.outputs.latestSpigotVersion }}\"}}"
           fi
 
       - name: Create build
-        if: env.BUILD_EXISTS != '1'
+        if: steps.download.outputs.exists != '1'
         run: |
           curl \
               --silent \
@@ -69,4 +69,4 @@ jobs:
               --header "Authorization: Bearer ${{ secrets.PAT }}" \
               --header "Accept: application/vnd.github.v3+json" \
               --url https://api.github.com/repos/${{ github.repository }}/actions/workflows/ci-cd.yml/dispatches \
-              --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ env.LATEST_VERSION }}\"}}"
+              --data "{\"ref\":\"refs/heads/master\",\"inputs\":{\"version\":\"${{ steps.prep.outputs.latestSpigotVersion }}\"}}"

@@ -53,7 +53,7 @@ jobs:
               jq --raw-input . |
               jq --compact-output --slurp '{spigot:.}'
           )
-          echo "::set-output name=matrix::$versions_json"
+          echo "::set-output name=matrix::${versions_json}"
 
   build:
     needs: create-matrix
